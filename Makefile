@@ -11,9 +11,12 @@ simulate: $(BUILD_PATH)/simulate.o
 $(BUILD_PATH)/%.o: $(SRC_PATH)/%.cpp
 	$(info Compiling $^ into $@)
 	g++ -std=c++17 -c $^ -o $@
+.PHONY: install
+
+.PHONY: clean
 clean: 
 	$(info Deleting object files and executables.)
-	rm  build/* simulate render_simulation
+	-rm  build/* simulate render_simulation
 	
 
 
