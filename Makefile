@@ -1,5 +1,6 @@
 SRC_PATH = src
 BUILD_PATH = build
+INCLUDES = -I include/ 
 all: render_simulation simulate
 
 render_simulation: $(BUILD_PATH)/render_simulation.o
@@ -10,13 +11,13 @@ simulate: $(BUILD_PATH)/simulate.o
 	g++ -o $@ $(BUILD_PATH)/$@.o /usr/local/lib/libraylib.so
 $(BUILD_PATH)/%.o: $(SRC_PATH)/%.cpp
 	$(info Compiling $^ into $@)
-	g++ -std=c++17 -c $^ -o $@
+	g++ -std=c++17 $(INCLUDES) -c $^ -o $@
 .PHONY: install
 
 .PHONY: clean
 clean: 
 	$(info Deleting object files and executables.)
-	-rm  build/* simulate render_simulation
+	@-rm  build/* simulate render_simulation
 	
 
 
