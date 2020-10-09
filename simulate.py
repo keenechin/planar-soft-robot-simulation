@@ -81,23 +81,30 @@ class Rigid5Bar():
         (self.state.p4.x-self.state.p2.x)
 
     def __str__(self):
-
-        # string =\
-        # f"{self.p1.__str__()}\n{self.p2.__str__()}\n{self.p3.__str__()}\n{self.p4.__str__()}\n{self.p5.__str__()}"
         string = self.state.__str__()
         return string
 
 
 
 if __name__ == "__main__":
-    robot = Rigid5Bar()
-    actuationSet  =  np.linspace(0, np.pi, num=5)
+    robot = Rigid5Bar(params = RigidParams(30,30,30,30,70))
+    resolution = 180
+    actuationSet  =  np.linspace(0, 2*np.pi, num=resolution)
     o = "\u03B8"
+    validity = np.zeros((resolution,resolution))
 
-    for theta1 in actuationSet:
-        for theta2 in actuationSet:
+    for i,theta1 in enumerate(actuationSet):
+        for j,theta2 in enumerate(actuationSet):
             try:
                 robot.kinematic_move([theta1, theta2])
-                print(robot)
+                #print(robot)
+                validity[i][j] = 1
             except ArithmeticError:
-                print(f"Invalid config: ({o}1: {theta1}, {o}2: {theta2})")
+                pass
+                #print(f"Invalid config: ({o}1: {theta1}, {o}2: {theta2})")
+
+    plt.imshow(validity, cmap='hot')
+    plt.xlabel(f"{o}1")
+    plt.ylabel(f"{o}2")
+    plt.title("Is a valid angle pair?")
+    plt.show()
