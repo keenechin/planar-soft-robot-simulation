@@ -1,12 +1,32 @@
 import numpy as np
-from collections import namedtuple
 from dataclasses import dataclass
+import matplotlib.pyplot as plt
+import json
 
 @dataclass
 class Point:
     "Class for storing points"
     x: float
     y: float
+
+
+@dataclass
+class RigidParams:
+    "Parameter set for rigid 5-bar"
+    l1: float
+    l2: float
+    l3: float
+    l4: float
+    servo_dist: float
+
+@dataclass
+class RigidState:
+    p1: Point
+    p2: Point
+    p3: Point
+    p4: Point
+    p5: Point
+
 def generate_trajectory(robot_model, actuation_sequence):
     kinematic_trajectory = []
     for action in actuation_sequence:
@@ -14,20 +34,16 @@ def generate_trajectory(robot_model, actuation_sequence):
     return kinematic_trajectory
 
 
-
 class Rigid5Bar():
-    def __init__(self, length1=40, length2=66, servo_distance=70):
+    def __init__(self,  params = RigidParams(40, 66, 66, 40, 70)):
 
-        self.l1 = length1
-        self.l2 = length2
-        self.l3 = length2
-        self.l4 = length1
-        self.servo_distance = servo_distance
-        self.p1 = Point(0, 0)
-        self.p2 = Point(0, 0)
-        self.p3 = Point(0, 0)
-        self.p4 = Point(0, 0)
-        self.p5 = Point(-self.servo_distance, 0)
+        self.l1 = params.l1
+        self.l2 = params.l2
+        self.l3 = params.l3
+        self.l4 = params.l4
+        self.servo_distance = params.servo_dist
+        self.state = RigidState(Point(0,0), Point(0,0), Point(0,0), Point(0,0),
+                                Point(-self.servo_distance,0))
 
     def kinematic_move(self, action):
 
@@ -39,48 +55,49 @@ class Rigid5Bar():
         a4 = self.l4
         a5 = self.servo_distance
 
-        self.p2.x = a1*np.cos(theta1)
-        self.p2.y = a1*np.sin(theta1)
-        self.p4.x = a4*np.cos(theta5)-a5
-        self.p4.y = a4*np.sin(theta5)
+        self.state.p2.x = a1*np.cos(theta1)
+        self.state.p2.y = a1*np.sin(theta1)
+        self.state.p4.x = a4*np.cos(theta5)-a5
+        self.state.p4.y = a4*np.sin(theta5)
 
-        p4 = np.array([self.p4.x, self.p4.y])
-        p2 = np.array([self.p2.x, self.p2.y])
+        p4 = np.array([self.state.p4.x, self.state.p4.y])
+        p2 = np.array([self.state.p2.x, self.state.p2.y])
 
         dist_p2_ph = (a2**2 - a3**2 + np.linalg.norm(p4-p2)**2)\
                /(2*np.linalg.norm(p4-p2))
 
         ph = p2 + (dist_p2_ph/np.linalg.norm(p2-p4))*(p4-p2)
-        dist_p3_ph = np.sqrt(a2**2-dist_p2_ph**2)
+        operand = a2**2-dist_p2_ph**2
+        if operand < 0:
+            raise ArithmeticError
+        dist_p3_ph = np.sqrt(operand)
         xh = ph[0]
         yh = ph[1]
 
-        self.p3.x = xh + dist_p3_ph/np.linalg.norm(p2-p4) * (self.p4.y -
-                                   self.p2.y)
+        self.state.p3.x = xh + dist_p3_ph/np.linalg.norm(p2-p4) * (self.state.p4.y -
+                                   self.state.p2.y)
 
-        self.p3.y = yh - dist_p3_ph/np.linalg.norm(p2-p4) *\
-        (self.p4.x-self.p2.x)
+        self.state.p3.y = yh - dist_p3_ph/np.linalg.norm(p2-p4) *\
+        (self.state.p4.x-self.state.p2.x)
 
     def __str__(self):
 
-        string =\
-        f"{self.p1.__str__()}\n{self.p2.__str__()}\n{self.p3.__str__()}\n{self.p4.__str__()}\n{self.p5.__str__()}"
+        # string =\
+        # f"{self.p1.__str__()}\n{self.p2.__str__()}\n{self.p3.__str__()}\n{self.p4.__str__()}\n{self.p5.__str__()}"
+        string = self.state.__str__()
         return string
 
 
-robot = Rigid5Bar()
-robot.kinematic_move([np.pi/4, 3*np.pi/4])
-print(robot)
 
+if __name__ == "__main__":
+    robot = Rigid5Bar()
+    actuationSet  =  np.linspace(0, np.pi, num=5)
+    o = "\u03B8"
 
-
-
-
-
-
-
-
-
-
-
-
+    for theta1 in actuationSet:
+        for theta2 in actuationSet:
+            try:
+                robot.kinematic_move([theta1, theta2])
+                print(robot)
+            except ArithmeticError:
+                print(f"Invalid config: ({o}1: {theta1}, {o}2: {theta2})")
